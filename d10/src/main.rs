@@ -1,9 +1,4 @@
-use std::collections::{HashMap, VecDeque};
-
-use z3::{
-    Solver,
-    ast::{Ast, Int},
-};
+use std::collections::VecDeque;
 
 #[derive(Debug)]
 struct Machine {
@@ -96,60 +91,7 @@ struct QueuedCounters {
     counters: Vec<usize>,
 }
 
-fn fewest_buttons_counters(joltages: Vec<usize>, buttons: Vec<Vec<usize>>) -> usize {
-    let mut solver = Solver::new();
-
-    // button press counters
-    let button_presses: Vec<Int> = buttons
-        .iter()
-        .enumerate()
-        .map(|(i, _)| Int::fresh_const(&format!("press_{}", i)))
-        .collect();
-
-    // joltage counters
-    let joltage_counters: Vec<Int> = joltages
-        .iter()
-        .enumerate()
-        .map(|(i, _)| Int::fresh_const(&format!("count_{}", i)))
-        .collect();
-
-    // cannot press buttons negative times
-    let _ = button_presses
-        .iter()
-        .map(|p| solver.assert(p.ge(0)))
-        .collect();
-
-    // set joltage requirements
-    let _ = joltage_counters
-        .iter()
-        .zip(joltages)
-        .map(|(c, j)| solver.assert(c.eq(j as u64)))
-        .collect();
-
-    // link buttons and joltages
-    let _ = joltage_counters
-        .iter()
-        .enumerate()
-        .map(|(i, counter)| {
-            solver.assert(
-                counter.eq(buttons
-                    .iter()
-                    .zip(button_presses)
-                    .filter_map(|(b, token)| if b.contains(&i) { Some(token) } else { None })
-                    .sum()),
-            )
-        })
-        .collect();
-
-    solver
-        .solutions(button_presses, false)
-        .next()
-        .unwrap()
-        .into_iter()
-        .filter_map(Int::as_u64)
-        .map(|i| i as usize)
-        .sum()
-}
+fn fewest_buttons_counters(joltages: Vec<usize>, buttons: Vec<Vec<usize>>) -> usize {}
 
 fn main() {
     let input = std::fs::read_to_string("example.txt").expect("unable to read file");
