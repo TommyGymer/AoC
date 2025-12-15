@@ -1,9 +1,9 @@
-mod nnls;
-
-use ndarray::{Array1, Array2, arr1};
-use nnls::nnls;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::collections::VecDeque;
+
+use z3::{
+    Solver,
+    ast::{Ast, Int},
+};
 
 #[derive(Debug)]
 struct Machine {
@@ -97,72 +97,36 @@ struct QueuedCounters {
 }
 
 fn fewest_buttons_counters(joltages: Vec<usize>, buttons: Vec<Vec<usize>>) -> usize {
-    let mut a: Array2<f64> = Array2::zeros((joltages.len(), buttons.len()));
-    let _ = buttons
+    let mut solver = Solver::new();
+
+    // button press counters
+    let button_presses: Vec<Int> = buttons
         .iter()
         .enumerate()
-        .map(|(j, row)| {
-            row.into_iter()
-                .map(|col| {
-                    a[[*col, j]] = 1f64;
-                })
-                .collect::<()>()
-        })
-        .collect::<()>();
-    let b: Array1<f64> = arr1(
-        joltages
-            .iter()
-            .map(|i| *i as f64)
-            .collect::<Vec<f64>>()
-            .as_slice(),
-    );
+        .map(|(i, _)| Int::fresh_const(&format!("press_{}", i)))
+        .collect();
 
-    // get an approximate solution
-    let (sol, err) = nnls(a.view(), b.view());
-    println!("{:?}", err);
-    // println!("{:?}", sol);
+    // joltage counters
+    let joltage_counters: Vec<Int> = joltages
+        .iter()
+        .enumerate()
+        .map(|(i, _)| Int::fresh_const(&format!("count_{}", i)))
+        .collect();
 
-    // determine an exact solution
-    // println!("{:?}", joltages);
-    let joltages_len = joltages.len();
-    let combinations = 2usize.pow(sol.len() as u32);
-    (0..combinations)
-        .map(|i| {
-            let mut presses = 0;
-            let counters = buttons
-                .iter()
-                .zip(sol.to_vec())
-                .enumerate()
-                .map(|(j, (button, s))| {
-                    if i & (1 << j) == 0 {
-                        let mut counters = vec![0; joltages_len];
-                        presses += s.floor() as usize;
-                        let _ = button
-                            .iter()
-                            .map(|b| *counters.get_mut(*b).unwrap() += s.floor() as usize)
-                            .collect::<()>();
-                        counters
-                    } else {
-                        let mut counters = vec![0; joltages.len()];
-                        presses += s.ceil() as usize;
-                        let _ = button
-                            .iter()
-                            .map(|b| *counters.get_mut(*b).unwrap() += s.ceil() as usize)
-                            .collect::<()>();
-                        counters
-                    }
-                })
-                .reduce(|a, b| a.iter().zip(b).map(|(a, b)| a + b).collect())
-                .expect("there were no buttons");
-            (presses, counters)
-        })
-        .filter(|(_, counters)| {
-            // println!("{:?} == {:?}", joltages, counters);
-            joltages.eq(counters)
-        })
-        .reduce(|a, b| if a.0 < b.0 { a } else { b })
-        .expect("there were no matches")
-        .0
+    // cannot press buttons negative times
+    let _ = button_presses
+        .iter()
+        .map(|p| solver.assert(p.ge(0)))
+        .collect();
+
+    // set joltage requirements
+    let _ = joltage_counters
+        .iter()
+        .zip(joltages)
+        .map(|(c, j)| solver.assert(c.eq(j as u64)))
+        .collect();
+
+    // link buttons and joltages
 }
 
 fn main() {
