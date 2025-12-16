@@ -20,6 +20,12 @@ struct CompressedPoint {
     compressed: Point,
 }
 
+impl CompressedPoint {
+    fn rect_area(&self, other: &CompressedPoint) -> u64 {
+        self.original.rect_area(&other.original)
+    }
+}
+
 impl From<&str> for Point {
     fn from(value: &str) -> Self {
         let mut values = value
@@ -133,28 +139,30 @@ fn part_2(points: Vec<CompressedPoint>) {
 fn main() {
     let input = std::fs::read_to_string("input.txt").unwrap();
 
-    let mut points: Vec<(Point, Option<u32>, Option<u32>)> = input
+    let mut points: Vec<(usize, Point, Option<u32>, Option<u32>)> = input
         .split('\n')
         .filter(|line| line.len() > 0)
-        .map(|line| (Point::from(line), None, None))
+        .enumerate()
+        .map(|(i, line)| (i, Point::from(line), None, None))
         .collect();
 
-    points.sort_by_key(|p| p.0.x);
+    points.sort_by_key(|p| p.1.x);
     points
         .iter_mut()
         .enumerate()
-        .map(|(i, (_, x, _))| *x = Some(i as u32))
+        .map(|(i, (_, _, x, _))| *x = Some(i as u32))
         .collect::<()>();
-    points.sort_by_key(|p| p.0.y);
+    points.sort_by_key(|p| p.1.y);
     points
         .iter_mut()
         .enumerate()
-        .map(|(i, (_, _, y))| *y = Some(i as u32))
+        .map(|(i, (_, _, _, y))| *y = Some(i as u32))
         .collect::<()>();
+    points.sort_by_key(|p| p.0);
 
     let points: Vec<CompressedPoint> = points
         .into_iter()
-        .map(|(p, x, y)| CompressedPoint {
+        .map(|(_, p, x, y)| CompressedPoint {
             original: p,
             compressed: Point {
                 x: x.unwrap(),
