@@ -19,6 +19,19 @@ fn insert_select_n_from_k(battery: &Vec<u8>, n: usize) -> u64 {
         .1
 }
 
+fn bucket_select_n_from_k(battery: &Vec<u8>, n: usize) -> u64 {
+    // sort
+    let mut buckets: [Vec<usize>; 9] = array::from_fn(|_| Vec::with_capacity(battery.len()));
+    let _ = battery
+        .iter()
+        .enumerate()
+        .map(|(i, b)| buckets[*b as usize].push(i))
+        .collect::<()>();
+
+    // select
+    0
+}
+
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
 
