@@ -1,4 +1,23 @@
-use std::fs;
+use std::{array, fs};
+
+fn insert_select_n_from_k(battery: &Vec<u8>, n: usize) -> u64 {
+    (0..n)
+        .fold((0usize, 0u64), |acc, i| {
+            let (start, v) = battery.as_slice()[acc.0..(battery.len() - (n - 1) + i) as usize]
+                .into_iter()
+                .enumerate()
+                .reduce(|(acc_i, acc_v), (index, value)| {
+                    if value <= acc_v {
+                        (acc_i, acc_v)
+                    } else {
+                        (index, value)
+                    }
+                })
+                .unwrap();
+            (acc.0 + start + 1, acc.1 * 10 + *v as u64)
+        })
+        .1
+}
 
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
@@ -9,30 +28,11 @@ fn main() {
         .map(|line| {
             line.chars()
                 .filter_map(|c| c.to_digit(10))
-                .map(|d| d as u64)
-                .collect::<Vec<u64>>()
+                .map(|d| d as u8)
+                .collect::<Vec<u8>>()
         })
         .filter(|l| l.len() > 0)
-        .map(|battery| {
-            let res = (0..12)
-                .fold((0, 0), |acc, i| {
-                    let (start, v) = battery.as_slice()[acc.0..(battery.len() - 11 + i) as usize]
-                        .into_iter()
-                        .enumerate()
-                        .rev()
-                        .reduce(|(acc_i, acc_v), (index, value)| {
-                            if value < acc_v {
-                                (acc_i, acc_v)
-                            } else {
-                                (index, value)
-                            }
-                        })
-                        .unwrap();
-                    (acc.0 + start + 1, acc.1 * 10 + v)
-                })
-                .1;
-            res
-        })
+        .map(|battery| insert_select_n_from_k(&battery, 2))
         .sum();
 
     println!("{}", total)
