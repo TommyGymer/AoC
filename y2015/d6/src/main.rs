@@ -29,7 +29,7 @@ fn parse_range(string: &str) -> (Point, Point) {
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
 
-    let mut space = [[false; 1000]; 1000];
+    let mut space = [[0u8; 1000]; 1000];
 
     let lines: Vec<&str> = input.split('\n').filter(|line| line.len() > 0).collect();
 
@@ -39,7 +39,13 @@ fn main() {
 
             for x in a.x.min(b.x)..=a.x.max(b.x) {
                 for y in a.y.min(b.y)..=a.y.max(b.y) {
-                    *space.get_mut(x).unwrap().get_mut(y).unwrap() = true;
+                    *space.get_mut(x).unwrap().get_mut(y).unwrap() = space
+                        .get(x)
+                        .unwrap()
+                        .get(y)
+                        .unwrap()
+                        .checked_add(1)
+                        .expect("overflowed");
                 }
             }
         } else if let Some(rem) = line.strip_prefix("turn off ") {
@@ -47,7 +53,12 @@ fn main() {
 
             for x in a.x.min(b.x)..=a.x.max(b.x) {
                 for y in a.y.min(b.y)..=a.y.max(b.y) {
-                    *space.get_mut(x).unwrap().get_mut(y).unwrap() = false;
+                    *space.get_mut(x).unwrap().get_mut(y).unwrap() = space
+                        .get(x)
+                        .unwrap()
+                        .get(y)
+                        .unwrap()
+                        .saturating_sub_signed(1);
                 }
             }
         } else if let Some(rem) = line.strip_prefix("toggle ") {
@@ -55,8 +66,13 @@ fn main() {
 
             for x in a.x.min(b.x)..=a.x.max(b.x) {
                 for y in a.y.min(b.y)..=a.y.max(b.y) {
-                    *space.get_mut(x).unwrap().get_mut(y).unwrap() =
-                        !space.get(x).unwrap().get(y).unwrap();
+                    *space.get_mut(x).unwrap().get_mut(y).unwrap() = space
+                        .get(x)
+                        .unwrap()
+                        .get(y)
+                        .unwrap()
+                        .checked_add(2)
+                        .expect("overflowed");
                 }
             }
         } else {
@@ -67,8 +83,8 @@ fn main() {
     println!(
         "{}",
         space
-            .iter()
-            .map(|row| row.iter().map(|&b| if b { 1 } else { 0 }).sum::<usize>())
+            .into_iter()
+            .map(|row| row.into_iter().map(|v| v as usize).sum::<usize>())
             .sum::<usize>()
     );
 }
