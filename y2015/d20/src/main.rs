@@ -1,11 +1,22 @@
 fn presents_delivered_to_house_n(n: u64) -> u64 {
     let mut total = 0;
     for i in 1..=n {
-        if n % i == 0 {
+        if n % i == 0 && n / i <= 50 {
             total += i;
         }
     }
     total
+}
+
+fn create_lookup_table() -> Vec<u64> {
+    let size = 10_000_000;
+    let mut lookup_table = Vec::with_capacity(size);
+
+    for i in 1..=size {
+        lookup_table[i] += 1;
+    }
+
+    lookup_table
 }
 
 fn main() {
@@ -18,7 +29,7 @@ fn main() {
 
     let bound = u64::from_str_radix(lines.first().expect("Missing the first line"), 10)
         .expect("Input was not number")
-        / 10;
+        / 11;
 
     println!("{}", bound);
 
