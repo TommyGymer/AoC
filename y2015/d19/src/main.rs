@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
@@ -41,26 +42,18 @@ fn generate_molecules(rules: &Vec<Rule>, medicine: &str) -> HashSet<String> {
     new
 }
 
-fn find_shortest_generator(
-    rules: &Vec<Rule>,
-    target: &str,
-    molecule: &str,
-    applied_rules: usize,
-) -> Option<usize> {
-    if molecule.len() > target.len() {
-        None
-    } else {
-        if molecule == target {
-            Some(applied_rules)
-        } else {
-            generate_molecules(rules, molecule)
-                .iter()
-                .filter_map(|molecule| {
-                    find_shortest_generator(rules, target, molecule, applied_rules + 1)
-                })
-                .min()
-        }
-    }
+/// Part two uses the analysis from `askalski` provided on the
+/// [Day 19 solution megathread](https://www.reddit.com/r/adventofcode/comments/3xflz8/day_19_solutions/).
+fn find_shortest_generator(target: &str) -> usize {
+    let num_tokens = target.chars().filter(|c| c.is_ascii_uppercase()).count();
+
+    let re_rn_ar = Regex::new(r"Rn|Ar").expect("Unable to compile regex");
+    let count_rn_ar = re_rn_ar.find_iter(target).count();
+
+    let re_y = Regex::new(r"Y").expect("Unable to compile regex");
+    let count_y = re_y.find_iter(target).count();
+
+    num_tokens - count_rn_ar - 2 * count_y - 1
 }
 
 fn main() {
@@ -89,12 +82,9 @@ fn main() {
         }
     }
 
-    // println!("Rules: {:#?}", rules);
-    // println!("Medicine: {}", medicine);
-
     let new = generate_molecules(&rules, &medicine);
 
     println!("{}", new.into_iter().count());
 
-    println!("{:?}", find_shortest_generator(&rules, &medicine, "e", 0));
+    println!("{}", find_shortest_generator(&medicine));
 }
