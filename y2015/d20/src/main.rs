@@ -1,3 +1,5 @@
+use core::iter::Iterator;
+
 fn presents_delivered_to_house_n(n: u64) -> u64 {
     let mut total = 0;
     for i in 1..=n {
@@ -8,12 +10,17 @@ fn presents_delivered_to_house_n(n: u64) -> u64 {
     total
 }
 
-fn create_lookup_table() -> Vec<u64> {
-    let size = 10_000_000;
-    let mut lookup_table = Vec::with_capacity(size);
+fn create_lookup_table(n: u64) -> Vec<u64> {
+    // the upper bound for the house we are looking for is
+    // n, the number of presents delivered off by a factor
+    // of 10, as this will be dilvered by the first elf
+    let mut lookup_table = vec![0; n as usize];
 
-    for i in 1..=size {
-        lookup_table[i] += 1;
+    // for each elf
+    for i in 1..=n {
+        for j in (i..=n).step_by(i as usize) {
+            lookup_table[j as usize - 1] += i;
+        }
     }
 
     lookup_table
@@ -29,7 +36,7 @@ fn main() {
 
     let bound = u64::from_str_radix(lines.first().expect("Missing the first line"), 10)
         .expect("Input was not number")
-        / 11;
+        / 10;
 
     println!("{}", bound);
 
@@ -39,6 +46,14 @@ fn main() {
             i,
             presents_delivered_to_house_n(i)
         );
+    }
+
+    let lookup_table = create_lookup_table(bound);
+    for (i, n) in lookup_table.into_iter().enumerate() {
+        if n > bound {
+            println!("house number {}", i + 1);
+            break;
+        }
     }
 
     let mut n = 1;
