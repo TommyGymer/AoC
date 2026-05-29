@@ -9,14 +9,12 @@ struct Character {
 
 impl Character {
     fn do_damage(&self, other: &mut Self) {
-        let before = other.health;
         other.health = match self.damage.saturating_sub(other.defence) {
             1.. => other
                 .health
                 .saturating_sub(self.damage.saturating_sub(other.defence)),
             _ => other.health - 1,
-        };
-        println!("did {} damage", before - other.health);
+        }
     }
 
     fn equip_item(&mut self, item: &Item) {
@@ -86,26 +84,16 @@ impl Display for Winner {
 /// a always takes the first turn
 fn determine_winner(mut a: Character, mut b: Character) -> Winner {
     loop {
-        println!("starting round...");
-
         if !a.is_alive() {
-            println!("B won!");
             return Winner::B;
         }
 
-        println!("A's turn to attack\na: {:?}\nb: {:?}", a, b);
         a.do_damage(&mut b);
-        println!("b: {:?}", b);
         if !b.is_alive() {
-            println!("A won!");
             return Winner::A;
         }
 
-        println!("B's turn to attack\na: {:?}\nb: {:?}", a, b);
         b.do_damage(&mut a);
-        println!("a: {:?}", a);
-
-        println!("round over!");
     }
 }
 
@@ -159,21 +147,14 @@ fn main() {
         None,
     ];
 
-    println!("player: {:?}", player);
-    println!("boss: {:?}", boss);
-
     let mut cheepest_win = 65535;
+    let mut most_expensive_lost = 0;
 
     for weapon in weapons {
         for armor in armors {
             for ring_a in rings {
                 for ring_b in rings {
                     if ring_a.is_none() && ring_b.is_none() || ring_a != ring_b {
-                        println!(
-                            "checking combo {:?} {:?} {:?} {:?}...",
-                            weapon, armor, ring_a, ring_b
-                        );
-
                         let mut player = player.clone();
                         let boss = boss.clone();
 
@@ -191,25 +172,41 @@ fn main() {
 
                         let winner = determine_winner(player, boss);
 
-                        if winner == Winner::A {
-                            println!("Player won");
-                            let mut cost = weapon.get_cost();
-                            if let Some(armor) = armor {
-                                cost += armor.get_cost();
-                            }
+                        match winner {
+                            Winner::A => {
+                                let mut cost = weapon.get_cost();
+                                if let Some(armor) = armor {
+                                    cost += armor.get_cost();
+                                }
 
-                            if let Some(ring_a) = ring_a {
-                                cost += ring_a.get_cost();
-                            }
+                                if let Some(ring_a) = ring_a {
+                                    cost += ring_a.get_cost();
+                                }
 
-                            if let Some(ring_b) = ring_b {
-                                cost += ring_b.get_cost();
+                                if let Some(ring_b) = ring_b {
+                                    cost += ring_b.get_cost();
+                                }
+                                if cost < cheepest_win {
+                                    cheepest_win = cost;
+                                }
                             }
-                            if cost < cheepest_win {
-                                cheepest_win = cost;
+                            Winner::B => {
+                                let mut cost = weapon.get_cost();
+                                if let Some(armor) = armor {
+                                    cost += armor.get_cost();
+                                }
+
+                                if let Some(ring_a) = ring_a {
+                                    cost += ring_a.get_cost();
+                                }
+
+                                if let Some(ring_b) = ring_b {
+                                    cost += ring_b.get_cost();
+                                }
+                                if cost > most_expensive_lost {
+                                    most_expensive_lost = cost;
+                                }
                             }
-                        } else {
-                            println!("Boss won");
                         }
                     }
                 }
@@ -218,6 +215,7 @@ fn main() {
     }
 
     println!("cheepest win cost {} coins", cheepest_win);
+    println!("most expensive loss cost {} coins", most_expensive_lost);
 }
 
 #[cfg(test)]
