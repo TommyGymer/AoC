@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum EffectState {
     Inactive,
@@ -10,6 +12,13 @@ impl EffectState {
             EffectState::Inactive => {}
             EffectState::Active(0) => *self = EffectState::Inactive,
             EffectState::Active(i) => *self = EffectState::Active(*i - 1),
+        }
+    }
+
+    fn is_active(&self) -> bool {
+        match self {
+            EffectState::Inactive => false,
+            _ => true,
         }
     }
 }
@@ -112,6 +121,20 @@ struct Boss {
     poison_state: EffectState,
 }
 
+impl Boss {
+    fn is_alive(&self) -> bool {
+        self.health > 0
+    }
+
+    fn do_damage(&mut self, player: &mut Player) {
+        player.health = if player.shield_state.is_active() {
+            player.health.saturating_sub(self.damage - 7)
+        } else {
+            player.health.saturating_sub(self.damage)
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Player {
     health: u16,
@@ -136,6 +159,67 @@ impl Player {
             false
         }
     }
+
+    fn is_alive(&self) -> bool {
+        self.health > 0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq)]
+enum Winner {
+    Player(u16),
+    Boss,
+}
+
+impl Ord for Winner {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            (Winner::Boss, Winner::Boss) => Ordering::Equal,
+            (Winner::Player(_), Winner::Boss) => Ordering::Less,
+            (Winner::Boss, Winner::Player(_)) => Ordering::Greater,
+            (Winner::Player(a), Winner::Player(b)) => {
+                if a == b {
+                    Ordering::Equal
+                } else if a > b {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                }
+            }
+        }
+    }
+}
+
+fn determine_minimum(player: Player, boss: Boss) -> Winner {
+    [
+        Spell::MagicMissile,
+        Spell::Drain,
+        Spell::Shield,
+        Spell::Poison,
+        Spell::Recharge,
+    ]
+    .into_iter()
+    .map(|spell| {
+        let mut player = player.clone();
+        let mut boss = boss.clone();
+
+        if player.cast_spell(&spell, &mut boss) {
+            if boss.is_alive() {
+                boss.do_damage(&mut player);
+                if player.is_alive() {
+                    determine_minimum(player, boss)
+                } else {
+                    Winner::Boss
+                }
+            } else {
+                Winner::Player(spell.get_mana_cost())
+            }
+        } else {
+            Winner::Boss
+        }
+    })
+    .min()
+    .unwrap()
 }
 
 fn main() {
@@ -161,4 +245,6 @@ fn main() {
             .expect("Unable to extract damage"),
         poison_state: EffectState::Inactive,
     };
+
+    println!("{:?}", determine_minimum(player, boss))
 }
